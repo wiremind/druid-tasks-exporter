@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -18,9 +19,10 @@ var (
 )
 
 type Task struct {
-	Type   string
-	Status string
-	Total  int
+	Type         string
+	Status       string
+	RunnerStatus string
+	Total        int
 }
 
 type DruidTasksExporter struct {
@@ -32,7 +34,7 @@ func NewDruidTasksExporter() *DruidTasksExporter {
 		Tasks: prometheus.NewDesc(
 			"dte_druid_tasks_total",
 			"Total number of Druid tasks per type and status.",
-			[]string{"type", "status"},
+			[]string{"type", "status", "runner_status"},
 			prometheus.Labels{},
 		)}
 }
@@ -77,11 +79,17 @@ func (d *DruidTasksExporter) Collect(ch chan<- prometheus.Metric) {
 			float64(task.Total),
 			task.Type,
 			task.Status,
+			task.Status,
 		)
 	}
 }
 func ok(w http.ResponseWriter, _ *http.Request) {
-	io.WriteString(w, "ok")
+	_, err := io.WriteString(w, "ok")
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		fmt.Println("Error writing response:", err)
+		return
+	}
 }
 
 func main() {
@@ -89,6 +97,7 @@ func main() {
 
 	druid := NewDruidTasksExporter()
 	reg := prometheus.NewPedanticRegistry()
+
 	reg.MustRegister(druid)
 
 	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
