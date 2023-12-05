@@ -19,10 +19,9 @@ var (
 )
 
 type Task struct {
-	Type         string
-	Status       string
-	RunnerStatus string
-	Total        int
+	Type          string
+	Runner_Status string
+	Total         int
 }
 
 type DruidTasksExporter struct {
@@ -34,7 +33,7 @@ func NewDruidTasksExporter() *DruidTasksExporter {
 		Tasks: prometheus.NewDesc(
 			"dte_druid_tasks_total",
 			"Total number of Druid tasks per type and status.",
-			[]string{"type", "status", "runner_status"},
+			[]string{"type", "runner_status"},
 			prometheus.Labels{},
 		)}
 }
@@ -42,7 +41,7 @@ func NewDruidTasksExporter() *DruidTasksExporter {
 func (d *DruidTasksExporter) RetrieveMetrics() []Task {
 
 	query, _ := json.Marshal(map[string]string{
-		"query": "SELECT type,status,count(*) AS total FROM sys.tasks GROUP BY status,type",
+		"query": "SELECT type,runner_status,count(*) AS total FROM sys.tasks GROUP BY type,runner_status",
 	})
 
 	reqBody := bytes.NewBuffer(query)
@@ -62,7 +61,7 @@ func (d *DruidTasksExporter) RetrieveMetrics() []Task {
 	if err != nil {
 		log.Fatalf("An Error occured while unmarshalling %s: %v", body, err)
 	}
-
+	fmt.Println(tasks)
 	return tasks
 }
 
@@ -78,8 +77,7 @@ func (d *DruidTasksExporter) Collect(ch chan<- prometheus.Metric) {
 			prometheus.GaugeValue,
 			float64(task.Total),
 			task.Type,
-			task.Status,
-			task.Status,
+			task.Runner_Status,
 		)
 	}
 }
@@ -97,7 +95,6 @@ func main() {
 
 	druid := NewDruidTasksExporter()
 	reg := prometheus.NewPedanticRegistry()
-
 	reg.MustRegister(druid)
 
 	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
