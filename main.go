@@ -19,9 +19,9 @@ var (
 )
 
 type Task struct {
-	Type         string
-	RunnerStatus string
-	Total        int
+	Type          string
+	Runner_Status string
+	Total         int
 }
 
 type DruidTasksExporter struct {
@@ -69,20 +69,22 @@ func (c *DruidTasksExporter) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (d *DruidTasksExporter) Collect(ch chan<- prometheus.Metric) {
+
 	tasks := d.RetrieveMetrics()
-	runnerStatuses := []string{"NONE", "PENDING", "RUNNING", "WAITING"}
+
+	Runner_Statuses := []string{"NONE", "PENDING", "RUNNING", "WAITING"}
 	taskTypes := []string{"single_phase_sub_task", "index", "index_parallel", "kill", "compact"}
 
-	for _, status := range runnerStatuses {
+	for _, status := range Runner_Statuses {
 		for _, taskType := range taskTypes {
 			is_present := false
 			for _, task := range tasks {
-				if task.Type == taskType && task.RunnerStatus == status {
+				if task.Type == taskType && task.Runner_Status == status {
 					is_present = true
 				}
 			}
 			if !is_present {
-				tasks = append(tasks, Task{Type: taskType, RunnerStatus: status, Total: 0})
+				tasks = append(tasks, Task{Type: taskType, Runner_Status: status, Total: 0})
 
 			}
 
@@ -94,7 +96,7 @@ func (d *DruidTasksExporter) Collect(ch chan<- prometheus.Metric) {
 			prometheus.GaugeValue,
 			float64(task.Total),
 			task.Type,
-			task.RunnerStatus,
+			task.Runner_Status,
 		)
 	}
 }
