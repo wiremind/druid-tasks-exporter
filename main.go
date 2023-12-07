@@ -19,9 +19,9 @@ var (
 )
 
 type Task struct {
-	Type          string
-	Runner_Status string
-	Total         int
+	Type         string
+	RunnerStatus string
+	Total        int
 }
 
 type DruidTasksExporter struct {
@@ -61,7 +61,6 @@ func (d *DruidTasksExporter) RetrieveMetrics() []Task {
 	if err != nil {
 		log.Fatalf("An Error occured while unmarshalling %s: %v", body, err)
 	}
-	fmt.Println(tasks)
 	return tasks
 }
 
@@ -71,13 +70,31 @@ func (c *DruidTasksExporter) Describe(ch chan<- *prometheus.Desc) {
 
 func (d *DruidTasksExporter) Collect(ch chan<- prometheus.Metric) {
 	tasks := d.RetrieveMetrics()
+	runnerStatuses := []string{"NONE", "PENDING", "RUNNING", "WAITING"}
+	taskTypes := []string{"single_phase_sub_task", "index", "index_parallel", "kill", "compact"}
+
+	for _, status := range runnerStatuses {
+		for _, taskType := range taskTypes {
+			is_present := false
+			for _, task := range tasks {
+				if task.Type == taskType && task.RunnerStatus == status {
+					is_present = true
+				}
+			}
+			if !is_present {
+				tasks = append(tasks, Task{Type: taskType, RunnerStatus: status, Total: 0})
+
+			}
+
+		}
+	}
 	for _, task := range tasks {
 		ch <- prometheus.MustNewConstMetric(
 			d.Tasks,
 			prometheus.GaugeValue,
 			float64(task.Total),
 			task.Type,
-			task.Runner_Status,
+			task.RunnerStatus,
 		)
 	}
 }
