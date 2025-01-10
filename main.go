@@ -21,6 +21,7 @@ var (
 type Task struct {
 	Type          string
 	Runner_Status string
+	Datasource    string
 	Total         int
 }
 
@@ -33,7 +34,7 @@ func NewDruidTasksExporter() *DruidTasksExporter {
 		Tasks: prometheus.NewDesc(
 			"dte_druid_tasks_total",
 			"Total number of Druid tasks per type and status.",
-			[]string{"type", "runner_status"},
+			[]string{"type", "runner_status", "datasource"},
 			prometheus.Labels{},
 		)}
 }
@@ -41,7 +42,7 @@ func NewDruidTasksExporter() *DruidTasksExporter {
 func (d *DruidTasksExporter) RetrieveMetrics() []Task {
 
 	query, _ := json.Marshal(map[string]string{
-		"query": "SELECT type,runner_status,count(*) AS total FROM sys.tasks GROUP BY type,runner_status",
+		"query": "SELECT type,runner_status,datasource,count(*) AS total FROM sys.tasks GROUP BY type,runner_status,datasource",
 	})
 
 	reqBody := bytes.NewBuffer(query)
@@ -84,7 +85,7 @@ func (d *DruidTasksExporter) Collect(ch chan<- prometheus.Metric) {
 				}
 			}
 			if !is_present {
-				tasks = append(tasks, Task{Type: taskType, Runner_Status: status, Total: 0})
+				tasks = append(tasks, Task{Type: taskType, Runner_Status: status, Datasource: "null", Total: 0})
 
 			}
 
@@ -97,6 +98,7 @@ func (d *DruidTasksExporter) Collect(ch chan<- prometheus.Metric) {
 			float64(task.Total),
 			task.Type,
 			task.Runner_Status,
+			task.Datasource
 		)
 	}
 }
