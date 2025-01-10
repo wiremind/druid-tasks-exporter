@@ -98,7 +98,7 @@ func (d *DruidTasksExporter) Collect(ch chan<- prometheus.Metric) {
 			float64(task.Total),
 			task.Type,
 			task.Runner_Status,
-			task.Datasource
+			task.Datasource,
 		)
 	}
 }
